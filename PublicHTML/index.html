@@ -1,0 +1,26 @@
+<html>
+<head>
+<script type="text/javascript"
+  src="dygraph.js"></script>
+<link rel="stylesheet" src="dygraph.css" />
+</head>
+<body>
+<div id="graphdiv"
+style="width:600px; height:480px;"></div>
+<script type="text/javascript">
+  g = new Dygraph(
+
+    // containing div
+    document.getElementById("graphdiv"),
+
+    // CSV or path to a CSV file.
+    //"time,amplitude\n" +
+    //"1,75\n" +
+    //"5,78\n" +
+    //"10,80\n"
+    "temperatures.csv",
+	{}
+  );
+</script>
+</body>
+</html>

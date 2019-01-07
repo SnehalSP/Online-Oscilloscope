@@ -1,0 +1,650 @@
+<html>
+<head>
+<script type="text/javascript"
+  src="dygraph.js"
+></script>
+<script type="text/javascript"
+  src="synchronizer.js"
+></script>
+<script type="text/javascript"
+  src="interaction-api.js"
+></script>
+<script type="text/javascript" src="http://dygraphs.com/src/extras/crosshair.js"></script>
+<link rel="stylesheet" src="dygraph.css" />
+<link rel='stylesheet' href='https://use.fontawesome.com/releases/v5.5.0/css/all.css' integrity='sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU' crossorigin='anonymous'>
+<style>
+.dygraph-legend { text-align: right; position: absolute;  background: white; color:black;
+  line-height: normal;
+  text-align: left;
+  overflow: hidden; }
+ div.centerfull {
+    position: relative;
+	left:20%;
+	 background-color: #101015
+    width: 60%;
+    
+   
+}
+div.center {
+    position: relative;
+	 background-color: #101015
+    width: 60%;
+    
+    
+}
+div.center1 {
+    position: relative;
+	
+    width: 38%;
+    
+	left:7%
+    
+}
+div.center2 {
+    position: relative;
+	
+    width: 60%;
+   
+    left:7%
+}
+div.center3 {
+    position: relative;
+	
+    width: 60%;
+   left:7%
+    
+}
+div.center4 {
+    position: relative;
+	
+    width: 60%;
+    left:7%
+    
+}
+
+div.relative {
+   position: fixed;
+    left: 70%;
+    
+	width:25%;
+	top:30%;
+	
+}
+
+div.belowgraph{
+    padding-left: 15%;
+    position: relative;
+    top:10%;
+	left:20%;
+	
+	width: 30%
+
+}
+
+.previous {
+    background-color: #f1f1f1;
+    color: black;
+}
+
+.next {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.round {
+    border-radius: 50%;
+}
+
+
+
+.hairline-info {
+        border: 1px solid white;
+        border-top-right-radius: 5px;
+        border-bottom-right-radius: 5px;
+
+        display: table;  /* shrink to fit */
+        min-width: 100px;
+
+        z-index: 10;  /* should appear on top of the chart */
+        padding: 3px;
+        background: white;
+        font-size: 14px;
+        cursor: move;
+      }
+	  
+	   .dygraph-hairline {
+        /* border-right-style: dotted !important; */
+        cursor: move;
+      }
+
+	  
+	  .btn {
+    background-color: DodgerBlue;
+    border: none;
+    color: white;
+    padding: 12px 16px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+</style>
+
+
+
+</head>
+<body>
+
+
+<div class = "relative">
+<p>
+<label for="noSamples">	Mem Depth</label>
+<input id="noSamples" type="number" name="noSamples" value="700"  style="text-align:center;">
+</p>
+<!--<p><label for="offset">	Offset you would like to set</label>
+<input id="offset" type="number" name="offset" value="0"  style="text-align:center;">
+</p>-->
+</div>
+
+<div class= "belowgraph">
+<p align="centre">
+
+
+
+
+<button class="btn" id= "left" onclick="leftShift()"> <i class='fas fa-backward'></i></button> 
+<button class="btn" id= "startStop" onclick="stopGraph()">Stop Graph</button> 
+<button class="btn" id= "right" onclick="rightShift()"><i class='fas fa-forward'></i></button> 
+<!--<button class="btn" id= "range" onclick="zoomIn()">Zoom in</button> -->
+<p id="demo" style="text-align:centre;"></p>
+</p>
+</div>
+
+
+<p>
+<div class="centerfull" style="background-color: #101015; color: white;width:45%">
+<div class="center" id="graphdiv"
+style="width:100%; height:30%; align:right; background-color: #101015; color: white;">
+</div>
+<div class="center1" id="graphdiv1"
+style="width:93%; height:10%; align:right; background-color: #101015; color: white;"> 
+</div>
+<div class="center2" id="graphdiv2"
+style="width:93%; height:10%; align:right; background-color: #101015; color: white;"> 
+</div>
+<div class="center3" id="graphdiv3"
+style="width:93%; height:10%; align:right; background-color: #101015; color: white;"> 
+</div>
+<div class="center4" id="graphdiv4"
+style="width:93%; height:10%; align:right; background-color: #101015; color: white;"> 
+</div>
+</div>
+</p>
+
+
+<script type="text/javascript">
+
+    var offsetd=0
+    var bw = window.innerWidth;
+    var bh = window.innerHeight;
+	console.log("bw"+bw+" and bh"+bh);
+    var of =0;
+    var graph = document.getElementById("graphdiv");    
+	var w = Math.round(0.45*bw);
+	var j=0;
+	
+	 var output=[];
+	 var xtremevalues=[0,1];
+	 var xtremevalues1=[0,1];
+	 var flag = 0;
+	 var g,g1,g2,g3,g4;
+	/**********************************************plotGraph()*****************************************************/
+	/* This function access the json response from the server side based on the parameters called in the url * /
+	 /* It then creates dygraph array for five graphs dygraphsArray to dygraphsArray4 which is fed as an input data 
+	 for plotting graphs g,g1,g2,g3,g4 respectively.*/
+	 
+	 /****************************************************************************************************************/
+  function plotGraph(){
+  
+  var binary= (255).toString(2); 
+  console.log("binary is"+binary);
+  var s = parseFloat(document.getElementById("noSamples").value);
+  console.log("offsetd is"+offsetd);
+  var totalPoint=1+of;
+  
+  //url to be used to fetch parameters from server.
+  var url="http://localhost:3000/data?width=" + w +"&sample=" + s + "&offset=" + of + "&xstart=" + xtremevalues1[0]+ "&xend=" + xtremevalues1[1]+ "&flag=" + flag;
+   fetch(url)
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(myJson) {
+    var x = document.getElementById("graphdiv");
+    var value=myJson.width1;  
+	var valu2= myJson.sample1;
+	var startTime = myJson.startTime;
+	totalPoints = myJson.totalPoints;
+    var data = myJson.data; //the actual 16 but data points come in this json response.
+	var xaxis = myJson.SamplesforX;
+	var timeDiff = 60/4096;
+	var dygraphsArray = []; //input array for graph g
+	output=Masking(data,12,12);  //Masking(data,noBits,pos) function is used to get specified number of bit to be ploted for particular graph here 12 bits are fetched from 16 bit number.
+	var output1 = [];
+	output1=Masking(data,1,13); //array containing 1 bit value for graph g1
+	var output2 = [];
+	output2=Masking(data,1,14); //array containing 1 bit value for graph g2
+	
+	var output3 = [];
+	output3=Masking(data,1,15);//array containing 1 bit value for graph g3
+	
+	var output4 = [];
+	output4=Masking(data,1,16); //array containing 1 bit value for graph g4
+	
+	var dygraphsArray = [];
+	var dygraphsArray1 = [];
+	var dygraphsArray2 = [];
+	var dygraphsArray3 = [];
+	var dygraphsArray4 = [];
+	
+	for (i = 0; i < data.length; i++) {
+	
+	    //dygraphArray is two dimensional with first element being the number of sample plotted on x axis i.e xaxi[] while amplitude output[] plotted on y axis.
+		dygraphsArray.push([ xaxis[i], output[i]]); 
+		dygraphsArray1.push([xaxis[i], output1[i]]);
+		dygraphsArray2.push([xaxis[i], output2[i]]);
+		dygraphsArray3.push([xaxis[i], output3[i]]);
+		dygraphsArray4.push([xaxis[i], output4[i]]);
+		
+	}
+   
+   
+     //plot for analog trace
+	g = new Dygraph(
+    document.getElementById("graphdiv"),
+	dygraphsArray,
+        {
+			  // formating parameters for graph g1:
+			  legend: "follow",
+			  labels: [ "x", "A" ],
+			  plugins: [new Dygraph.Plugins.Crosshair({
+              direction: "vertical",
+			  color:"white"})],
+			  // showRangeSelector: true,
+			  interactionModel : {
+              'mousedown' : downV3,
+              'mousemove' : moveV3,
+              'mouseup' : upV3,
+              'click' : clickV3,
+              'dblclick' : dblClickV3,
+              'mousewheel' : scrollV3
+              }
+	    });
+			  
+			   hairlines = new Dygraph.Plugins.Crosshair({
+               direction: "vertical",
+			   color:"white"
+                  })
+	
+	
+	 //plot for first digital trace			  
+    g1 = new Dygraph(
+    document.getElementById("graphdiv1"),
+	dygraphsArray1,
+        {
+			     //drawPoints: true,
+				 //showRoller: true,
+				 //showRangeSelector: true,
+				 // valueRange: [0.0, 1.2],
+				 legend:"never",
+				 stepPlot: true,
+				 drawAxis: false,
+				 plugins: [hairlines],
+                 labels: [ "x", "A" ],
+				
+				
+	    });
+  
+  
+     //plot for second digital trace
+     g2 = new Dygraph(
+    document.getElementById("graphdiv2"),
+	dygraphsArray2,
+        {
+			     //drawPoints: true,
+				 //showRoller: true,
+				 //valueRange: [0.0, 1.2],
+				 legend:"never",
+				 stepPlot: true,
+				 drawAxis: false,
+				 plugins: [new Dygraph.Plugins.Crosshair({
+                 direction: "vertical"
+                  })],
+                 labels: [ "x", "A" ]
+        });
+  
+  
+     //plot for third digital trace
+    g3 = new Dygraph(
+    document.getElementById("graphdiv3"),
+	dygraphsArray3,
+        {
+			     //drawPoints: true,
+				 //showRoller: true,
+				 stepPlot: true,
+				 legend:"never",
+                 drawAxis: false,
+                 plugins: [new Dygraph.Plugins.Crosshair({
+                 direction: "vertical"
+                  })],
+                 labels: [ "x", "A" ]
+        });
+
+	//plot for fourth digital trace
+    g4 = new Dygraph(
+    document.getElementById("graphdiv4"),
+	dygraphsArray4,
+        {
+			     //drawPoints: true,
+				 //showRoller: true,
+				 stepPlot: true,
+				 // drawAxis: false,
+				 legend:"never",
+                 drawAxis: false,
+				 plugins: [new Dygraph.Plugins.Crosshair({
+                 direction: "vertical"
+                  })],
+                 labels: [ "x", "A" ]
+        });	
+			  
+  
+  
+     // synchronize api is called to keep the five plot synchronized in respect to the x axis.
+  var sync = Dygraph.synchronize( g, g1, g2, g3, g4, {
+       selection: true,
+       zoom: true,
+	   range: false 
+    });
+	
+  });  
+    
+ }
+   
+ 
+     /*************************************setUpdateGraph() and updateGraph() *****************************************/
+	/* setUpdateGraph() sets the interval for updating the graphs plotted with new data from the server every 1 sec* /
+	/* It call updateGraph function which updates the parameters for calling the new values from server and when the maximum limit is reach it 
+      clears the interval to update the graph thereby pausing the graph	*/
+	 
+	 /****************************************************************************************************************/
+   var refresh;
+  
+   setUpdateGraph();
+   function setUpdateGraph()
+  {
+  refresh= setInterval(updateGraph, 1000);
+  }
+  
+   function updateGraph()
+  {
+    console.log("In updateGraph");
+    of=of+w;
+	console.log("of after  of=of+w in refresh graph is "+of);
+    plotGraph();
+   if (of >= 20000)
+    {
+    console.log("Maximum Sample points reached!!");
+    clearInterval(refresh);
+    }
+ }
+  
+ 
+ 
+  /*************************************stopGraph() *****************************************/
+	/* Function to stop or start updating the graph*/
+	/*When the user has to maximize the graph he has to first click on stoGrph button which stops updating the graph ith new values*/
+	/* Once the offset and window is selected the user then clicks on startGraph button which then sens the offset and the window size 
+	  and get the new values from the server to be plotted*/
+ /****************************************************************************************************************/
+ 
+ function stopGraph()
+ {
+  
+   var initial=document.getElementById("startStop").innerText;
+   temp_j=j;
+   console.log(initial);
+   
+   // When stop graph button is pressed
+   if(initial=="Stop Graph")
+   {
+     clearInterval(refresh);
+     document.getElementById("startStop").innerText = "Start Graph";
+     initial=document.getElementById("startStop").innerText;
+   } 
+   
+   
+   // When start graph button is pressed
+   else if(initial=="Start Graph")
+   {
+     xtremevalues = g.xAxisExtremes();//gets the window starting point i.e the offset
+     xtremevalues1= g.xAxisRange();// gets the window end point that is the window size
+     flag= 1;// to let the server know that new values need to be send
+    // document.getElementById("demo").innerHTML += xtremevalues+ " xAxisExtremes and <br>" + xtremevalues1 +" is xAxisRange<br>" +flag +" is flag";
+     document.getElementById("startStop").innerText = 'Stop Graph';
+     setUpdateGraph();
+   }
+   
+ }
+ 
+ 
+ 
+  /*************************************leftShift() ***************************************************************/
+	/* Function to get the previous 100 points from the existing points*/
+ /****************************************************************************************************************/
+ function leftShift()
+ {
+      if(document.getElementById("startStop").innerText=="Start Graph")
+      {
+	     of=of-100;// shifts the offset value by 100 thereby asking the server to get previous 100 points
+		 xtremevalues1[0]=xtremevalues1[0]-100;
+		 xtremevalues1[1]=xtremevalues1[1]-100;
+		 console.log("of after  of=of+100 in  leftshift graph is "+of);
+		 console.log("value of j in leftshift "+j);
+		 plotGraph();
+ 
+      }
+      if(document.getElementById("startStop").innerText=="Stop Graph")
+      {
+         
+         alert("Click 'Stop Graph' button in order to scroll graph to the left");
+
+	  
+	  }
+	  
+      if(of <=0)
+      {
+         // document.getElementById("leftexcep").innerHTML = "Cannot shift offset=0";
+         alert("Cannot shift offset reached maximum points value!!");
+ 
+      }
+ 
+ }
+ 
+ 
+ /*************************************      rightShift()   *******************************************************/
+	/* Function to get the next 100 points from the existing points on the graph*/
+ /****************************************************************************************************************/
+ 
+ function rightShift()
+ {
+    if(document.getElementById("startStop").innerText=="Start Graph")
+      {
+        of=of+100;
+		xtremevalues1[0]=xtremevalues1[0]+100;
+		xtremevalues1[1]=xtremevalues1[1]+100;
+		 console.log("of after  of=of+100 in  leftshift graph is "+of);
+		 console.log("value of j in rightshift "+j);
+        plotGraph();
+		
+ 
+      }
+      if(document.getElementById("startStop").innerText=="Stop Graph")
+      {
+	     var txt = "Stop Graph";
+         var graph1= txt.bold()
+         alert("Click 'Stop Graph' button in order to scroll graph to the right");
+
+      }
+      if(of >= 20000)
+      {
+        
+         alert("Cannot shift offset reached maximum points value!!");
+
+ 
+      }  
+ }
+ 
+ 
+ 
+ 
+ 
+  /*************************************   Masking() ***************************************************************/
+	/* Function to specific bits from the given 16 bit value graph g = first 12 bits, graph g1= 13th bit g2= 14th
+	g3= 15th and g4=16th bit */
+ /****************************************************************************************************************/
+ 
+ function Masking(data,noBits,pos)
+ {
+    var twelve= 0000111111111111;
+	var thirteen= 0001000000000000;
+	var fouteen= 0010000000000000;
+	var fifteen= 0100000000000000;
+	var sixteen= 1000000000000000;
+    var temp=[];
+    var temp2=[];
+	var result=[];
+	
+	//this returns 12 bits out of the 16 bit input.
+    if (pos < 13)
+    {
+	   
+        for (i = 0; i < data.length; i++)
+        {
+		    temp[i]=data[i];
+			result[i]=parseInt(temp[i],2) & 4095;
+		}
+			
+	}
+			
+	//returns single bit at position 13	
+    if(pos==13)
+	{
+	 var temp1=[];
+	 var temp2=[];
+	 var temp3=[];
+	    for (i = 0; i < data.length; i++)
+        {
+
+		   temp[i]=data[i];
+		   temp1[i]=parseInt(temp[i],2);
+		   temp2[i]=temp1[i]>>12;
+		   result[i]= parseInt(temp2[i],2) & 1;
+	    }
+	 
+	}
+	 
+	//returns single bit at position 14	
+	if(pos==14)
+	{
+	 var temp1=[];
+	 var temp2=[];
+	 var temp3=[];
+	    for (i = 0; i < data.length; i++)
+        { 
+			temp[i]=data[i];
+		    temp1[i]=parseInt(temp[i],2);
+		    temp2[i]=temp1[i]>>13;
+		    result[i]= parseInt(temp2[i],2) & 1;
+		}
+	 
+	 }
+	 
+	 //returns single bit at position 15	
+	 if(pos==15)
+    {
+	 var temp1=[];
+	 var temp2=[];
+	 var temp3=[];
+	    for (i = 0; i < data.length; i++)
+        {
+			temp[i]=data[i];
+		    temp1[i]=parseInt(temp[i],2);
+		    temp2[i]=temp1[i]>>14;
+		    result[i]= parseInt(temp2[i],2) & 1;
+		}
+	 
+	}
+	 
+	 //returns single bit at position 16	
+	if(pos==16)
+	{
+	 var temp1=[];
+	 var temp2=[];
+	 var temp3=[];
+	    for (i = 0; i < data.length; i++)
+        {
+	    	temp[i]=data[i];
+		    temp1[i]=parseInt(temp[i],2);
+		    temp2[i]=temp1[i]>>15;
+		    result[i]= parseInt(temp2[i],2) & 1;
+	
+	    }
+	 
+	 }
+	 
+	
+ return result;
+        
+ }
+ 
+ 
+ 
+//testing function
+function myFunction() {
+    document.getElementById("demo").innerHTML += "Moused over!<br>";
+}
+
+
+function zoomIn() {
+    
+   console.log("iNSIDE THE xtremevalues " );	
+   var initial=document.getElementById("range").innerText;
+   
+   if(initial=="Zoom in")
+   {
+  
+    flag= 1;
+    document.getElementById("range").innerText = "Zoom out";
+    initial=document.getElementById("range").innerText;
+    console.log("new initial values is "+initial);
+    xtremevalues= g.xAxisExtremes();
+	xtremevalues1= g.xAxisRange();
+	document.getElementById("demo").innerHTML += xtremevalues+ " xAxisExtremes and <br>" + xtremevalues1 +" is xAxisRange<br>" +flag +" is flag";
+   } 
+   
+   else if(initial=="Zoom out")
+   {
+    console.log("Zoom out");
+    document.getElementById("range").innerText = 'Zoom in';
+    flag=0;
+    xtremevalues= [0,0];
+	xtremevalues1= [0,0];
+    document.getElementById("demo").innerHTML += xtremevalues+ " xAxisExtremes and <br>" + xtremevalues1 +" is xAxisRange<br>" +flag +" is flag";
+   
+   }
+	
+}
+ 
+ 
+ 
+</script>
+</body>
+</html>
